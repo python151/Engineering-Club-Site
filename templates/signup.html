@@ -1,0 +1,26 @@
+{% extends "headers/main.htm" %}
+
+{% block head %}
+{% endblock head %}
+
+{% block body %}
+<script>
+        function fun(){
+                var url = "/signup1/";
+                var email = document.getElementById("email").value;
+                var password = document.getElementById("password").value;
+                var name = document.getElementById("name").value;
+                var age = document.getElementById("age").value;
+                var params = "email="+email+"&password="+password+"&name="+name+"&age="+age;
+                ajax(url, params, console.log);
+            }
+        </script>
+        <script src="static/js/ajax.js"></script>
+        <div class="container">
+            email:<input type="email" class="input" placeholder="email" id="email">
+            <br>password:<input type="password" class="input" placeholder="password" id="password">
+            <br>name:<input type="text" class="input" placeholder="name" id="name">
+            <br>age:<input type="text" class="input" placeholder="age" id="age">
+            <button class="btn btn-primary" onclick='fun()'>Login</button>
+        </div>
+{% endblock body %}
