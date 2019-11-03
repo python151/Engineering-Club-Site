@@ -5,12 +5,16 @@
 
 {% block body %}
 <script>
+var red = function(x) {
+    window.location = x.replace('"', '').replace('"', '');
+}
+
 function fun(){
         var url = "/login1/";
         var email = document.getElementById("email").value;
         var password = document.getElementById("password").value
         var params = "email="+email+"&password="+password;
-        ajax(url, params, console.log);
+        ajax(url, params, red);
     }
 </script>
 <script src="static/js/ajax.js"></script>

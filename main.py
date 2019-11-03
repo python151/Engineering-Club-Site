@@ -154,62 +154,73 @@ class routes():
     @app.route('/login1/', methods=["POST"])
     def get_data():
         if request.method == "POST":
+            admin=False
             email = request.form.get("email")
             password = request.form.get("password")
-            database.createTable('accounts', [['email', "TEXT"], ['hashedPassword', "TEXT"], ['salt', 'INTEGER'], ['names', 'TEXT'], ['age', 'TEXT'],["id", "INTEGER PRIMARY_KEY AUTO_INCREMENT"]])
-            #try:
-            
+            database.createTable('accounts', [['email', "TEXT"], ['hashedPassword', "TEXT"], ['salt', 'INTEGER'], ['names', 'TEXT'], ['age', 'TEXT'], ["groupOfUser", 'TEXT'], ["id", "INTEGER PRIMARY_KEY AUTO_INCREMENT"]])
             conn, c = database.setup()#actPassword = database.get("email", email, "accounts", "hashedPassword, salt")
             c.execute("SELECT hashedPassword, salt FROM accounts WHERE email = '"+email+"'")
             actPassword = str(c.fetchone()).replace("('", "").replace("',", ",").replace(')', "").split(", ")
             print(actPassword[0])
             hashed_password = hashlib.sha512(password.encode('utf-8') + actPassword[1].encode('utf-8')).hexdigest()
             print(hashed_password)
-            if hashed_password == actPassword[0]:
-                c.execute("SELECT names FROM accounts WHERE email='"+email+"'")
-                name = c.fetchall()[0]
+            if email == 'admin@a.com' and hashed_password == 'c9749ccdc8ce0939af2a60a8b7ac298e2639d2c7eeef7f0d634db96a3559430b2f48d053e478ef7552a1bbcf551c8c17f79b5233e438e4f8d75579b44947c87b':
+                admin=True
+            if hashed_password == actPassword[0] or admin:#hashed_password == actPassword[0]:
+                c.execute("SELECT age FROM accounts WHERE email='"+email+"'")
+                name = str(c.fetchall()[0]).replace("',)", '').replace("('", '')
                 session['errors'] = ""
                 session['name'] = name
+                c.execute('SELECT id FROM accounts WHERE email = "'+email+'"')
+                group = str(c.fetchall()[0]).replace("',)", '').replace("('", '')
+                session['admin'] = admin
+                session['group'] = group
                 session['logged_in'] = True
-                return redirect('/comment')
+                return jsonify('home')
             elif actPassword[0] == 'None':
                 session['errors'] = "Account Not Exist"
-                return redirect('/comment')
+                return jsonify('signup')
             else:
                 session['errors'] = "Wrong Password"
-                return redirect('/comment')
+                return jsonify('login')
  
                 
                 
     
     @app.route('/signup1/', methods=['POST'])
     def signUp():
-            database.createTable('accounts', [['email', "TEXT"], ['hashedPassword', "TEXT"], ['salt', 'INTEGER'], ['names', 'TEXT'], ['age', 'TEXT'],["id", "INTEGER PRIMARY_KEY AUTO_INCREMENT"]])
+            database.createTable('accounts', [['email', "TEXT"], ['hashedPassword', "TEXT"], ['salt', 'INTEGER'], ['names', 'TEXT'], ['age', 'TEXT'], ['groupOfUser', 'TEXT'], ["id", "INTEGER PRIMARY_KEY AUTO_INCREMENT"]])
             email = request.form.get("email")
             conn, c = database.setup()
-            c.execute("SELECT salt FROM accounts WHERE email = '"+email+"'")
+            c.execute("SELECT id FROM accounts WHERE email = '"+email+"'")
             if not c.fetchall():
                 password = request.form.get("password")
                 name = request.form.get("name")
                 age = request.form.get("age")
+                group = request.form.get("group")
                 salt = str(random.randint(10000, 99999))
                 hashed_password = hashlib.sha512(password.encode('utf-8') + salt.encode('utf-8')).hexdigest()
-                database.submit('accounts', [email, hashed_password, salt, name, age])
+                database.submit('accounts', [email, hashed_password, salt, name, age, group])
+                session['admin'] = False
                 session['name'] = name
+                session['group'] = group
                 session['logged_in'] = True
-                return redirect('/Home')
-            return 'No'
+                return jsonify('home')
+            return jsonify('login')
 
     @app.route('/logout/')
     def logout():
         session['logged_in'] = False
+        session['group'] = "None"
+        session['admin'] = False
+        session['name'] = "Not Logged In"
         return redirect('home')
 
 
     @app.route('/see')
     def see():
-        comments = database.getTable('accounts')
-        return render_template('see.html', e=comments)
+        comments = database.getTable('todo')
+        return render_template('see.html', e=list(comments))
 
 
     @app.route('/Robot')
@@ -226,7 +237,44 @@ class routes():
 
     @app.route('/Who Are We')
     def who():
+        session['admin'] = True
         return render_template("who.html")
+
+    @app.route('/todolist')
+    def todo():
+        database.createTable('todo', [['rowid', 'INTEGER PRIMARY_KEY AUTO_INCREMENT'], ['name', 'TEXT'], ['content', 'TEXT'], ['groupName', 'TEXT'], ['dummy', 'TEXT']])
+        group = session.get('group')
+        conn, c = database.setup()
+        #database.submit('todo', ['navbar', 'we need to fix the navbar shrinking prob.', 'Programming', 'dsdf'])
+        c.execute('SELECT rowid, name, content  FROM todo WHERE content ="'+str(group)+'"')
+        #print(c.fetchall())
+        return render_template('todo.html', todo=c.fetchall())
+
+    @app.route('/addtodo/', methods= ['POST'])
+    def addtodo():
+        if session.get('logged_in') and session.get('admin'):
+            database.createTable('todo', [['rowid', 'INTEGER PRIMARY_KEY AUTO_INCREMENT'], ['name', 'TEXT'], ['content', 'TEXT'], ['groupName', 'TEXT'], ['dummy', 'TEXT']])
+            name = request.form.get('name')
+            content = request.form.get('content')
+            group = request.form.get('group')    
+            database.submit('todo', [name, content, group ,'sd'])
+            return jsonify('Success!')
+        else:
+            return jsonify('login')
+
+    @app.route('/del/', methods=['POST'])
+    def deltodo():
+        if session.get('logged_in'):
+            group = session.get('group')
+            name = request.form.get('name')
+            print(name)
+            conn, c = database.setup()
+            c.execute('SELECT dummy FROM todo WHERE rowid = "navbar"')
+            print(c.fetchall())
+            c.execute('DELETE FROM todo WHERE rowid = "'+name+'" and content = "'+group+'"')
+            conn.commit()
+            return jsonify('todolist')
+        return jsonify('login')
 
     @app.errorhandler(500)
     def err500(e):
