@@ -1,0 +1,79 @@
+{% extends "headers/main.htm" %}
+
+{% block head %}
+{% endblock head %}
+
+{% block body %}
+
+<script src="static/js/ajax.js"></script>
+<script>
+    function red(x) {
+        window.location = x.replace('"', '').replace('"', '');
+    }
+    function getSelectedText(elementId) {
+        var elt = document.getElementById(elementId);
+
+        return elt.options[elt.selectedIndex].text;
+    }
+
+var subs = function() {
+    var name = document.getElementById('name').value;
+    var content = document.getElementById('content').value;
+    var group = getSelectedText('group');
+
+    url = '/addtodo/';
+    params = 'name='+name+'&content='+content+'&group='+group;
+
+    ajax(url, params, console.log);
+}
+
+var show = function() {
+    var name = document.getElementById('name');
+    var content = document.getElementById('content');
+    var group = document.getElementById('group');
+    var btn = document.getElementById('btn');
+
+    name.style = "display: block;";
+    content.style = "display: block;"
+    group.style = "display: block;"
+    btn.style = "display: block;"
+}
+
+var del = function(i) {
+    var name = document.getElementById(i).innerHTML;
+    console.log(name)
+    var url = '/del/'
+
+    var params = 'name='+name;
+
+    ajax(url, params, red)
+}
+</script>
+
+<div class="container" style="margin: 10px 0 0 0;">
+    <ul class="list-group" style="box-align: center;">
+    {% for thing in todo %}
+    <li class="list-group-item">
+
+            <h5 id="{{loop.index}}">{{thing[0]}}</h5>
+            {{thing[1]}}
+            <button class="btn btn-outline-danger" onclick="del({{loop.index|tojson}})">x</button>
+        </li>
+        
+    {% endfor %}
+    </ul>
+    {% if session.get('admin') %}
+    <button onclick="show()" class="btn btn-outline-dark">+</button>
+    <input style="display: none;" type="text" id="name" placeholder="name">
+    <select style='display: none;' id='group'>
+            <option>Programming</option>
+            <option>Robot</option>
+            <option>Marketing</option>
+        </select>
+    <textarea style="display: none;" type="text" id="content" placeholder="content"></textarea>
+    <button style="display: none;" onclick="subs()" id="btn">submit</button>
+    {% endif %}
+</div>
+
+
+{% endblock body %}

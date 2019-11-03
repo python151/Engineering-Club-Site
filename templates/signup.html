@@ -5,14 +5,27 @@
 
 {% block body %}
 <script>
+        
+
+        function getSelectedText(elementId) {
+            var elt = document.getElementById(elementId);
+
+            return elt.options[elt.selectedIndex].text;
+        }
+
+        var red = function(x) {
+            window.location = x.replace('"', '').replace('"', '');
+        }
+
         function fun(){
                 var url = "/signup1/";
                 var email = document.getElementById("email").value;
                 var password = document.getElementById("password").value;
                 var name = document.getElementById("name").value;
                 var age = document.getElementById("age").value;
-                var params = "email="+email+"&password="+password+"&name="+name+"&age="+age;
-                ajax(url, params, console.log);
+                var group = getSelectedText('group');
+                var params = "email="+email+"&password="+password+"&name="+name+"&age="+age+"&group="+group;
+                ajax(url, params, red);
             }
         </script>
         <script src="static/js/ajax.js"></script>
@@ -21,6 +34,11 @@
             <br>password:<input type="password" class="input" placeholder="password" id="password">
             <br>name:<input type="text" class="input" placeholder="name" id="name">
             <br>age:<input type="text" class="input" placeholder="age" id="age">
-            <button class="btn btn-primary" onclick='fun()'>Login</button>
+            <br>group:<select id='group'>
+                <option>Programming</option>
+                <option>Robot</option>
+                <option>Marketing</option>
+            </select>
+            <button class="btn btn-primary" onclick='fun()'>Register</button>
         </div>
 {% endblock body %}
