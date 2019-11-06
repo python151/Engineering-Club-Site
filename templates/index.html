@@ -1,0 +1,61 @@
+{% extends "headers/main.htm" %}
+
+{% block head %}
+{% endblock head %}
+
+{% block body %}
+<div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel">
+    <ol class="carousel-indicators">
+      <li data-target="#carouselExampleIndicators" data-slide-to="0" class="active"></li>
+      <li data-target="#carouselExampleIndicators" data-slide-to="1"></li>
+      <li data-target=".dot" data-slide-to="2"></li>
+    </ol>
+    <div class="carousel-inner">
+      <div class="carousel-item active" height="100vh">
+        <img src="static/images/carousel-1.jpg" class="d-block w-100" alt="...">
+      </div>
+      <div class="carousel-item" height="100vh">
+        <img src="static/images/carousel-2.jpg" class="d-block w-100" alt="...">
+      </div>
+      <div class="carousel-item" height="100vh">
+        <img src="static/images/carousel-3.jpg" class="d-block w-100" alt="...">
+      </div>
+    </div>
+    <a class="carousel-control-prev" href="#carouselExampleIndicators" role="button" data-slide="prev">
+      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+      <span class="sr-only">Previous</span>
+    </a>
+    <a class="carousel-control-next" href="#carouselExampleIndicators" role="button" data-slide="next">
+      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+      <span class="sr-only">Next</span>
+    </a>
+  </div>
+  <script src="static/js/carousel.js"></script>
+
+<div class="row md-n3 mx-auto">
+  <div class="card align-center p-1" style="width: 18rem;">
+    <img src="static/images/market.jpg" class="card-img-top" alt="...">
+    <div class="card-body">
+      <h5 class="card-title">Marketing</h5>
+      <p class="card-text">The Marketing group markets the robot</p>
+      <a href="/Marketing" class="btn btn-primary">More</a>
+    </div>
+  </div>
+  <div class="card align-center p-2" style="width: 18rem;">
+    <img src="static/images/code.jpg" class="card-img-top" alt="...">
+    <div class="card-body">
+      <h5 class="card-title">Programming</h5>
+      <p class="card-text">The Programming group makes the website and assists coding the robot</p>
+      <a href="/Code" class="btn btn-primary">More</a>
+    </div>
+  </div>
+  <div class="card align-center p-3" style="width: 18rem;">
+    <img src="static/images/robot.jpg" class="card-img-top" alt="...">
+    <div class="card-body">
+      <h5 class="card-title">Robot</h5>
+      <p class="card-text">The Robot group builds and programs the robot</p>
+      <a href="/Robot" class="btn btn-primary">More</a>
+    </div>
+  </div>
+</div>
+{% endblock body %}
