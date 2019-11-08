@@ -7,7 +7,7 @@
 
 <script src="static/js/ajax.js"></script>
 <script>
-    function red(x) {
+    function red(x) { //please explain what this function does
         window.location = x.replace('"', '').replace('"', '');
     }
     function getSelectedText(elementId) {
@@ -16,7 +16,7 @@
         return elt.options[elt.selectedIndex].text;
     }
 
-var subs = function() {
+var subs = function() { //please explain what this function does
     var name = document.getElementById('name').value;
     var content = document.getElementById('content').value;
     var group = getSelectedText('group');
@@ -27,7 +27,7 @@ var subs = function() {
     ajax(url, params, console.log);
 }
 
-var show = function() {
+var show = function() { //please explain what this function does
     var name = document.getElementById('name');
     var content = document.getElementById('content');
     var group = document.getElementById('group');
@@ -39,7 +39,7 @@ var show = function() {
     btn.style = "display: block;"
 }
 
-var del = function(i) {
+var del = function(i) { //please explain what this function does
     var name = document.getElementById(i).innerHTML;
     console.log(name)
     var url = '/del/'
@@ -66,12 +66,12 @@ var del = function(i) {
     <button onclick="show()" class="btn btn-outline-dark">+</button>
     <input style="display: none;" type="text" id="name" placeholder="name">
     <select style='display: none;' id='group'>
-            <option>Programming</option>
-            <option>Robot</option>
-            <option>Marketing</option>
-        </select>
+      <option>Programming</option>
+      <option>Robot</option>
+      <option>Marketing</option>
+    </select>
     <textarea style="display: none;" type="text" id="content" placeholder="content"></textarea>
-    <button style="display: none;" onclick="subs()" id="btn">submit</button>
+    <button style="display: none;" onclick="subs()" id="btn">Submit</button>
     {% endif %}
 </div>
 

@@ -1,291 +1,364 @@
-from flask import Flask, request, render_template, redirect, url_for, jsonify, session, flash
-import sqlite3
+from flask import Flask, request, render_template, redirect, jsonify, session
 import hashlib
 import random
+import database
+from sqlalchemy import create_engine, and_
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.pool import SingletonThreadPool
 
+#add documentation
+#I can't read this code :(
 class sec:
-    def sanitize(listOfPoints, characters=[list('''\n{}[];:<>,./?!@#$%^&*()-_=+\|'"`~'''), ['//0', '//1', '//2', '//3', '//4', '//5', '//6', '//7', '//8', '//9', '//10', '//11', '//12', '//13', '//14', '//15', '//16', '//17', '//18', '//19', '//20', '//21', '//22', '//23', '//24', '//25', '//26', '//27', '//28', '//29', '//30', '//31', '//32', '//33']]):
-        refinedData = []
+    # this will sanitize any inputs
+    def sanitize(listOfPoints, characters='abcdefghijklomnopqrstuvwxyzABCDEFGHIJKLMNOPQRTUVWXYZ1234567890'):
+        '''
+        It takes in the string to sanatize and the characters to allow in the characters variable this variable will default to allow only letters and numbers
+        '''
+        refinedData = ''
         for point in listOfPoints:
-            i = 0
-            fix = False
-            for char in characters[0]:
-                point = str(point)
-                if point == char:
-                    point1 = characters[1][i]
-                    fix = True
-                else:
-                    if not fix:
-                        point1 = point
-                i += 1
-            if point1 == '"':
-                point1 = ''
-            refinedData.append(point1)
-        return ''.join(refinedData)
-    
-    def deSanitize(listOfPoints, characters=[list('''\n{}[];:<>,./?!@#$%^&*()-_=+\|'"`~'''), ['//0', '//1', '//2', '//3', '//4', '//5', '//6', '//7', '//8', '//9', '//10', '//11', '//12', '//13', '//14', '//15', '//16', '//17', '//18', '//19', '//20', '//21', '//22', '//23', '//24', '//25', '//26', '//27', '//28', '//29', '//30', '//31', '//32', '//33']]):
-        final = []
-        listOfPoints = str(listOfPoints)
-        for i, point in enumerate(listOfPoints):
-            if point == "/":
-                keyCodeIterator = i + 2
-                keyCode = listOfPoints[keyCodeIterator]
-                try:
-                    key = characters[0][keyCode]
-                    print(key)
-                    final.append(listOfPoints.replace("//"+keyCode, key))
-                except:
-                    pass
-            else:
-                final.append(point)
-        return ''.join(final).replace("(", "").replace(",)", "")
-class database:
-    def submit(tableName, variableList):
-        conn = sqlite3.connect("database.db")
-        c = conn.cursor()
-        variableList1 = []
-        for i in variableList:
-            variableList1.append(sec.deSanitize(i))
-
-        str00 = '", "'.join(variableList1)
-        c.execute('INSERT INTO '+tableName+' VALUES("'+str00+'")'.replace(', )', ")"))
-        conn.commit()
-        c.close()
-        conn.close()
-
-    def getTable(tableName):
-        conn = sqlite3.connect("database.db")
-        c = conn.cursor()
-        c.execute("SELECT * FROM "+tableName)
-        listOfRows = []
-        for row in c.fetchall():
-            listOfRows.append(sec.deSanitize(row))
-        return listOfRows
-        c.close()
-        conn.close()
-
-    def createTable(tableName, variableList):
-        conn = sqlite3.connect("database.db")
-        c = conn.cursor()
-        str00 = []
-        for num, i in enumerate(variableList):
-            if len(i) == num:
-                str00.append(i[0]+" "+i[1])
-            else:
-                str00.append(i[0]+" "+i[1]+", ")
-        sqlcode = 'CREATE TABLE IF NOT EXISTS '+tableName+' ('+''.join(str00)+')'.replace(', )', ")")
-        c.execute(sqlcode.replace(', )', ')'))
-        conn.commit()
-        c.close()
-        conn.close()
-    
-    def rename(old, new):
-        conn = sqlite3.connect('database.db')
-        c = conn.cursor()
-        c.execute('''ALTER TABLE "'''+old+'''" RENAME TO '''+new)
-        conn.commit()
-        c.execute('UPDATE lists SET name = "'+new+'" WHERE name = "'+old+'"')
-        conn.commit()
-        c.close()
-        conn.close()
-
-    def deleteItem(name, whereVar, var='email'):
-        conn = sqlite3.connect('database.db')
-        c = conn.cursor()
-        c.execute('DELETE FROM '+name+' WHERE "'+var+'" = "'+whereVar+'"')
-        conn.commit()
-        c.close()
-        conn.close()
-
-    def get(var, whereVar, tableName, getting):
-        conn = sqlite3.connect("database.db")
-        c = conn.cursor()
-        c.execute("SELECT "+getting+" FROM "+tableName+" WHERE '"+var+"' = '"+whereVar+"'")
-        listOfRows = []
-        for row in c.fetchall():
-            listOfRows.append(row)
-        #listOfRows = database.dataRefiner(listOfRows)
-        return listOfRows
-        c.close()
-        conn.close()
-    
-    def setup():
-        '''
-        will return the conn and the cursor respectivly
-        '''
-        connectionToDatabase = sqlite3.connect("database.db")
-        cursorToTalkToDatabase = connectionToDatabase.cursor()
-        return connectionToDatabase, cursorToTalkToDatabase
-
-class routes():
-    app = Flask(__name__)
-
-    @app.before_request
-    def log():
-        userIp = request.remote_addr
-        #logIp(userIp)
-
-    @app.route('/')
-    @app.route('/home')
-    @app.route('/Home')
-    def index():
-        return render_template("index.htm")
-
-    @app.route('/Comment', methods=["GET", "POST"])
-    @app.route('/comment', methods=["GET", "POST"])
-    def comment():
-        if request.method == "POST" and session.get('logged_in'):
-            database.createTable("comments", [['comment', "TEXT"], ['email', "TEXT"]])
-            database.submit("comments", [request.form['comment'], session.get('email')])
-            return redirect("/Home")
-        elif session.get('logged_in') and request.method == 'GET':
-            return render_template("comment.html")
-        else:
-            return render_template('mustLogin.html')
-    
-    @app.route('/login')
-    def loginDisp():
-        return render_template('login.html')
-
-    @app.route('/signup')
-    def signupDisp():
-        return render_template('signup.html')
-    
-    @app.route('/login1/', methods=["POST"])
-    def get_data():
-        if request.method == "POST":
-            admin=False
-            email = request.form.get("email")
-            password = request.form.get("password")
-            database.createTable('accounts', [['email', "TEXT"], ['hashedPassword', "TEXT"], ['salt', 'INTEGER'], ['names', 'TEXT'], ['age', 'TEXT'], ["groupOfUser", 'TEXT'], ["id", "INTEGER PRIMARY_KEY AUTO_INCREMENT"]])
-            conn, c = database.setup()#actPassword = database.get("email", email, "accounts", "hashedPassword, salt")
-            c.execute("SELECT hashedPassword, salt FROM accounts WHERE email = '"+email+"'")
-            actPassword = str(c.fetchone()).replace("('", "").replace("',", ",").replace(')', "").split(", ")
-            print(actPassword[0])
-            hashed_password = hashlib.sha512(password.encode('utf-8') + actPassword[1].encode('utf-8')).hexdigest()
-            print(hashed_password)
-            if email == 'admin@a.com' and hashed_password == 'c9749ccdc8ce0939af2a60a8b7ac298e2639d2c7eeef7f0d634db96a3559430b2f48d053e478ef7552a1bbcf551c8c17f79b5233e438e4f8d75579b44947c87b':
-                admin=True
-            if hashed_password == actPassword[0] or admin:#hashed_password == actPassword[0]:
-                c.execute("SELECT age FROM accounts WHERE email='"+email+"'")
-                name = str(c.fetchall()[0]).replace("',)", '').replace("('", '')
-                session['errors'] = ""
-                session['name'] = name
-                c.execute('SELECT id FROM accounts WHERE email = "'+email+'"')
-                group = str(c.fetchall()[0]).replace("',)", '').replace("('", '')
-                session['admin'] = admin
-                session['group'] = group
-                session['logged_in'] = True
-                return jsonify('home')
-            elif actPassword[0] == 'None':
-                session['errors'] = "Account Not Exist"
-                return jsonify('signup')
-            else:
-                session['errors'] = "Wrong Password"
-                return jsonify('login')
- 
-                
-                
-    
-    @app.route('/signup1/', methods=['POST'])
-    def signUp():
-            database.createTable('accounts', [['email', "TEXT"], ['hashedPassword', "TEXT"], ['salt', 'INTEGER'], ['names', 'TEXT'], ['age', 'TEXT'], ['groupOfUser', 'TEXT'], ["id", "INTEGER PRIMARY_KEY AUTO_INCREMENT"]])
-            email = request.form.get("email")
-            conn, c = database.setup()
-            c.execute("SELECT id FROM accounts WHERE email = '"+email+"'")
-            if not c.fetchall():
-                password = request.form.get("password")
-                name = request.form.get("name")
-                age = request.form.get("age")
-                group = request.form.get("group")
-                salt = str(random.randint(10000, 99999))
-                hashed_password = hashlib.sha512(password.encode('utf-8') + salt.encode('utf-8')).hexdigest()
-                database.submit('accounts', [email, hashed_password, salt, name, age, group])
-                session['admin'] = False
-                session['name'] = name
-                session['group'] = group
-                session['logged_in'] = True
-                return jsonify('home')
-            return jsonify('login')
-
-    @app.route('/logout/')
-    def logout():
-        session['logged_in'] = False
-        session['group'] = "None"
-        session['admin'] = False
-        session['name'] = "Not Logged In"
-        return redirect('home')
+            if point in characters:
+                refinedData = refinedData + point
+        return refinedData
 
 
-    @app.route('/see')
-    def see():
-        comments = database.getTable('todo')
-        return render_template('see.html', e=list(comments))
+
+#add pages to our app
+app = Flask(__name__)
 
 
-    @app.route('/Robot')
-    def robot():
-        return render_template("robot.html")
+#this runs before every request
+#logs user ip and updates breadcrum
+@app.before_request
+def log():
+    userIp = request.remote_addr
+    session['ip_address'] = userIp
+    #session['breadcrum'] = str(session.get('breadcrum')) + request.endpoint
 
-    @app.route('/Code')
-    def code():
-        return render_template("code.html")
-    
-    @app.route('/Marketing')
-    def marketing():
-        return render_template("marketing.html")
 
-    @app.route('/Who Are We')
-    def who():
-        session['admin'] = True
-        return render_template("who.html")
+# this is a 'soft' function it just returns a template
+@app.route('/')
+@app.route('/home')
+@app.route('/Home')
+def index():
+    return render_template("index.html")
 
-    @app.route('/todolist')
-    def todo():
-        database.createTable('todo', [['rowid', 'INTEGER PRIMARY_KEY AUTO_INCREMENT'], ['name', 'TEXT'], ['content', 'TEXT'], ['groupName', 'TEXT'], ['dummy', 'TEXT']])
+@app.route('/login')
+def loginDisp():
+    return render_template('login.html')
+
+@app.route('/signup')
+def signupDisp():
+    return render_template('signup.html')
+
+@app.route('/Robot')
+def robot():
+    return render_template("robot.html")
+
+@app.route('/Code')
+def code():
+    return render_template("code.html")
+
+@app.route('/Marketing')
+def marketing():
+    return render_template("marketing.html")
+
+@app.route('/Who Are We')
+def who():
+    return render_template("who.html")
+
+@app.route('/admin_login')
+def adminLogin():
+    return render_template('adminLogin.html')
+
+
+
+# these scan the user session and return pages acordingly
+
+@app.route('/admin')
+def admin():
+    if session.get('logged_in') and session.get('admin'):
+        return render_template('admin.html')
+    else:
+        return redirect('/admin_login')
+
+# returns things to learn depending on group
+@app.route('/learn')
+def howto():
+    if session.get('logged_in'):
+        # setting up database session
         group = session.get('group')
-        conn, c = database.setup()
-        #database.submit('todo', ['navbar', 'we need to fix the navbar shrinking prob.', 'Programming', 'dsdf'])
-        c.execute('SELECT rowid, name, content  FROM todo WHERE content ="'+str(group)+'"')
-        #print(c.fetchall())
-        return render_template('todo.html', todo=c.fetchall())
-
-    @app.route('/addtodo/', methods= ['POST'])
-    def addtodo():
-        if session.get('logged_in') and session.get('admin'):
-            database.createTable('todo', [['rowid', 'INTEGER PRIMARY_KEY AUTO_INCREMENT'], ['name', 'TEXT'], ['content', 'TEXT'], ['groupName', 'TEXT'], ['dummy', 'TEXT']])
-            name = request.form.get('name')
-            content = request.form.get('content')
-            group = request.form.get('group')    
-            database.submit('todo', [name, content, group ,'sd'])
-            return jsonify('Success!')
+        Base = declarative_base()
+        engine = create_engine('sqlite:///mainDatabase.db, poolclass=SingletonThreadPool')
+        Base.metadata.bind = engine
+        DBSession = sessionmaker(bind=engine)
+        s=DBSession()
+        # getting things to learn (admins get all)
+        if session.get('admin'):
+            things = s.query([database.Learn])
         else:
+            s.query([database.Learn]).filter(database.Learn.group == group)
+        # rendering template with things variable
+        return render_template('learn.html', things=things)
+    elif not session.get('logged_in'):
+        # if not logged in redirects to login
+        return redirect('/login')
+
+# this returns the to do list for the users group
+@app.route('/todolist')
+def todo():
+    if session.get('logged_in'):
+        # getting variables
+        Base = declarative_base()
+        engine = create_engine('sqlite:///mainDatabase.db', poolclass=SingletonThreadPool)
+        Base.metadata.bind = engine
+        DBSession = sessionmaker(bind=engine)
+        s=DBSession()
+        todolist = s.query(database.Todolist).filter(database.Todolist.group==session.get('group')).all()
+        # rendering template with to do list
+        return render_template('todo.html', todolist=todolist)
+    else:
+        # redirecting to login if not logged in
+        return redirect('/login')
+
+# these are forms taken in and functions called from the front end
+# this is my login form
+@app.route('/login1/', methods=["POST"])
+def get_data():
+    if request.method == "POST":
+        # getting email and sanatizing it
+        email = request.form.get("email")
+        email = sec.sanitize(email, characters='abcdefghijklomnopqrstuvwxyzABCDEFGHIJKLMNOPQRTUVWXYZ1234567890@.')
+
+        # checking if its the account exists
+        Base = declarative_base()
+        engine = create_engine('sqlite:///mainDatabase.db', poolclass=SingletonThreadPool)
+        Base.metadata.bind = engine
+        DBSession = sessionmaker(bind=engine)
+        s=DBSession()
+        try:
+            account = s.query(database.Account).filter(database.Account.email==email).one()
+        except:
+            return jsonify('signup')
+
+        # getting the password and salt to hash then sanatizing the salt
+        salt = str(account.salt)
+        password = request.form.get("password")
+        password = sec.sanitize(salt, characters='123456789')
+
+        # hashing passwords and deleting old variables from RAM
+        hashed_password = hashlib.sha512(password.encode('utf-8') + salt.encode('utf-8')).hexdigest()
+        del password
+        del salt
+
+        # if password is correct updates session variables and redirects you to home
+        if hashed_password == account.password:
+            # deleting hashed password from ram
+            del hashed_password
+
+            name = account.name
+            group = account.group
+            
+            session['logged_in'] = True
+            session['name'] = name
+            session['group'] = group
+            session['errors'] = ''
+
+            return jsonify('home')
+        else:
+            # if password is wrong reloads the page
+            session['errors'] = "Password Incorrect"
+            return jsonify('login')
+    
+# signup form
+@app.route('/signup1/', methods=['POST'])
+def signUp():
+    if request.method == 'POST':
+        # getting and sanatizing email
+        email = request.form.get("email")
+        email = sec.sanitize(email, characters='abcdefghijklomnopqrstuvwxyzABCDEFGHIJKLMNOPQRTUVWXYZ1234567890@.')
+
+        # checking if account with email already exists
+        Base = declarative_base()
+        engine = create_engine('sqlite:///mainDatabase.db',
+        poolclass=SingletonThreadPool)
+        Base.metadata.bind = engine
+        DBSession = sessionmaker(bind=engine)
+        s=DBSession()
+        try:
+            s.query(database.Account).filter(database.Account.email==email).one()
+            accountAlreadyExists = True
+        except:
+            accountAlreadyExists = False
+
+        if not accountAlreadyExists:
+            # getting form variables, generating salt, and sanatizing the retreived variables
+            password = request.form.get("password")
+            name = request.form.get("name")
+            group = request.form.get("group")
+
+            name = sec.sanitize(name)
+            group = sec.sanitize(group)
+
+            salt = str(random.randint(10000, 99999))
+
+            # hashing password with salt
+            hashed_password = hashlib.sha512(password.encode('utf-8') + salt.encode('utf-8')).hexdigest()
+
+            # uploading account to database
+            new_person = database.Account(name=name,
+            password=hashed_password,
+            salt=int(salt),
+            email=email,
+            group=group)
+            s.add(new_person)
+            s.commit()
+
+            # updating session variables and logging in
+            session['admin'] = False
+            session['name'] = name
+            session['group'] = group
+            session['logged_in'] = True
+
+            # redirecting to home
+            return jsonify('home')
+        elif  accountAlreadyExists:
+            # if account already exists redirecting to login page
             return jsonify('login')
 
-    @app.route('/del/', methods=['POST'])
-    def deltodo():
-        if session.get('logged_in'):
-            group = session.get('group')
-            name = request.form.get('name')
-            print(name)
-            conn, c = database.setup()
-            c.execute('SELECT dummy FROM todo WHERE rowid = "navbar"')
-            print(c.fetchall())
-            c.execute('DELETE FROM todo WHERE rowid = "'+name+'" and content = "'+group+'"')
-            conn.commit()
+@app.route('/logout/')
+def logout():
+    # reseting session variables
+    session['group'] = "None"
+    session['admin'] = False
+    session['name'] = "Log in"
+    session['logged_in'] = False
+    # redirecting you to home
+    return redirect('/home')
+        
+# this is my admin login form
+@app.route('/adminLogin/', methods=["POST"])
+def adminLoginForm():
+    if request.method == "POST":
+        # getting email
+        email = request.form.get("email")
+        
+        # checking if its the account exists
+        Base = declarative_base()
+        engine = create_engine('sqlite:///mainDatabase.db', poolclass=SingletonThreadPool)
+        Base.metadata.bind = engine
+        DBSession = sessionmaker(bind=engine)
+        s=DBSession()
+        try:
+            account = s.query(database.AdminUsers).filter(database.AdminUsers.email==email).one()
+        except:
+            return jsonify('admin_login')
+
+        # getting the password and salt to hash
+        salt = str(account.salt)
+        password = request.form.get("password")
+
+        # hashing passwords and deleting old variables from RAM
+        hashed_password = hashlib.sha512(password.encode('utf-8') + salt.encode('utf-8')).hexdigest()
+        del password
+        del salt
+
+        # if password is correct updates session variables and redirects you to the admin page
+        if hashed_password == account.password:
+            # deleting hashed password from RAM
+            del hashed_password
+
+            name = account.name
+            level = account.level
+            
+            session['logged_in'] = True
+            session['admin'] = True
+            session['level'] = level
+            session['name'] = name
+            session['group'] = 'admin'
+            session['errors'] = ''
+
+            return jsonify('admin')
+        else:
+            # if password is wrong reloads the page
+            session['errors'] = "Password Incorrect"
+            return jsonify('admin_login')
+
+
+
+@app.route('/addtodo/', methods= ['POST'])
+def addtodo():
+    # checks if logged in as admin
+    if session.get('logged_in') and session.get('admin'):
+        # gets form variables
+        name = request.form.get('name')
+        content = request.form.get('content')
+        group = request.form.get('group')
+
+        # uploads to database
+        Base=declarative_base()
+        engine = create_engine('sqlite:///mainDatabase.db')
+        Base.metadata.bind = engine
+        DBSession = sessionmaker(bind=engine)
+        s=DBSession()
+        query = database.Todolist(group=group, itemName=name, itemContent=content)
+        s.add(query)
+        s.commit()
+
+        # returns string
+        return jsonify('Success!')
+    else:
+        # redirects to login if not logged in
+        return redirect('/login')
+
+@app.route('/del/', methods=['POST'])
+def deltodo():
+    if session.get('logged_in'):
+        # getting name
+        name = request.form.get('name')
+
+        # checking if its in the database
+        try:
+            Base=declarative_base()
+            engine = create_engine('sqlite:///mainDatabase.db')
+            Base.metadata.bind = engine
+            DBSession = sessionmaker(bind=engine)
+            s=DBSession()
+            s.query(database.Todolist).filter(database.Todolist.itemName == name).one()
+        except:
             return jsonify('todolist')
-        return jsonify('login')
 
-    @app.errorhandler(500)
-    def err500(e):
-        return render_template("error.htm", error=e)
+        # getting group
+        group = session.get('group')
 
-    @app.errorhandler(404)
-    def err404(e):
-        return render_template("error.htm", error=e)
+        # deleting from database
+        d = database.Todolist.delete().where(and_(database.Todolist.itemName == name, database.Todolist.group == group))
+        s.execute(d)
 
-    if __name__ == '__main__':
-        app.secret_key=bytes(random.randint(99999999, 999999999))
-        app.run(debug=True)
+        # clearing ram
+        del group
+        del name
 
-flaskApp = routes
+        # returning redirect location
+        return jsonify('todolist')
+    return jsonify('login')
+
+
+
+
+
+@app.errorhandler(500) #error page for internal server errors '500'
+def err500(e):
+    return render_template("error.html", error=e)
+
+@app.errorhandler(404) #error page for missing resource errors '404'
+def err404(e):
+    return render_template("error.html", error=e)
+
+
+
+if __name__ == '__main__':
+    app.secret_key=bytes(random.randint(99999999, 999999999))
+    app.run(debug=True, host='0.0.0.0', port=8000)
+        
+
