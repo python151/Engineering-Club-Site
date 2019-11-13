@@ -4,5 +4,26 @@
 {% endblock head %}
 
 {% block body %}
-<h1>Admin Portal</h1>
+<script>
+    var red = function(x) {
+        window.location = x.replace('"', '').replace('"', '');
+    }
+    
+    function fun(){
+            var url = "/adminLogin/";
+            var email = document.getElementById("email").value;
+            var password = document.getElementById("password").value
+            var params = "email="+email+"&password="+password;
+            ajax(url, params, red);
+        }
+    </script>
+    <script src="static/js/ajax.js"></script>
+    <div class="container">
+        <h1>Admin Login</h1>
+        <input type="email" class="input" placeholder="email" id="email">
+        <input type="password" class="input" placeholder="password" id="password">
+        <button class="btn btn-primary" onclick='fun()'>Login</button>
+    </div>
+    
+    <p style="color:red">{{session.get('errors')}}</p>
 {% endblock body %}
