@@ -70,9 +70,6 @@
     }
 }
 
-body {
-    margin: 0;
-}
 
 * {box-sizing:border-box}
 
@@ -182,4 +179,33 @@ body {
 .card {
   display: inline-block;
   margin: 10px;
+}
+
+footer {
+  border-top: 8px solid #003E6D;
+  background: #222;
+  height: 20rem;
+  position: relative;
+  width: 100%;
+  margin: 20px 0 0 0;
+  overflow: hidden;
+}
+footer .link-c {
+  display: block;
+  text-align: center;
+  width: 100%;
+ 
+}
+footer a {
+  color: white;
+  margin: 0.5em 1em;
+}
+footer a:hover{
+  color: white;
+  text-decoration: none;
+}
+.logo-c {
+  display: block;
+  text-align: center;
+  width: 100%;
 }

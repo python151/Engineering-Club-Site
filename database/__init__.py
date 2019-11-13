@@ -29,9 +29,9 @@ class Account(Base):
 class Todolist(Base):
     __tablename__ = 'todo'
     id = Column(Integer, primary_key=True)
-    group = Column(String(250))
+    group = Column(String(250), nullable=False)
     itemName = Column(String(250))
-    itemContent = Column(String(250))
+    itemContent = Column(String(250), nullable=False)
 
 class AdminUsers(Base):
     __tablename__ = 'admin'
@@ -40,6 +40,7 @@ class AdminUsers(Base):
     email = Column(String(250), nullable=False)
     password = Column(String(250), nullable=False)
     salt = Column(Integer, nullable=False)
+    level = Column(Integer, nullable=False)
 
 class Learn(Base):
     __tablename__ = 'learn'
@@ -47,7 +48,7 @@ class Learn(Base):
     name = Column(String(250))
     link = Column(String(250), nullable=False)
     groupId = Column(Integer, ForeignKey("group.id"))
-    group = relationship(Group)
+    group = Column(String(250), nullable=False)
 
 # this is the engine it is being run on the SingletonThreadPool to maintain thread 
 engine = create_engine('sqlite:///mainDatabase.db', poolclass=SingletonThreadPool)

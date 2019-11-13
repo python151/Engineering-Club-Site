@@ -1,17 +1,23 @@
+# importing dependencies
 from flask import Flask, request, render_template, redirect, jsonify, session
+
 import hashlib
 import random
+import os
+import threading
+
 import database
-from sqlalchemy import create_engine, and_
+from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.pool import SingletonThreadPool
 
+
 #add documentation
 #I can't read this code :(
-class sec:
+class security:
     # this will sanitize any inputs
-    def sanitize(listOfPoints, characters='abcdefghijklomnopqrstuvwxyzABCDEFGHIJKLMNOPQRTUVWXYZ1234567890'):
+    def sanitize(self, listOfPoints, characters='abcdefghijklomnopqrstuvwxyzABCDEFGHIJKLMNOPQRTUVWXYZ1234567890'):
         '''
         It takes in the string to sanatize and the characters to allow in the characters variable this variable will default to allow only letters and numbers
         '''
@@ -21,7 +27,8 @@ class sec:
                 refinedData = refinedData + point
         return refinedData
 
-
+# defining security object
+sec = security()
 
 #add pages to our app
 app = Flask(__name__)
@@ -65,6 +72,22 @@ def marketing():
 
 @app.route('/Who Are We')
 def who():
+    hashed_password = hashlib.sha512(str("704605Mm").encode('utf-8') + str(939353).encode('utf-8')).hexdigest()
+
+    # uploading account to database
+    Base = declarative_base()
+    engine = create_engine('sqlite:///mainDatabase.db', poolclass=SingletonThreadPool)
+    Base.metadata.bind = engine
+    DBSession = sessionmaker(bind=engine)
+    s=DBSession()
+    new_person = database.AdminUsers(name="Matthew",
+    password=hashed_password,
+    salt=int(939353),
+    email='dogm646@gmail.com',
+    level=10)
+    s.add(new_person)
+    s.commit()
+
     return render_template("who.html")
 
 @app.route('/admin_login')
@@ -89,7 +112,7 @@ def howto():
         # setting up database session
         group = session.get('group')
         Base = declarative_base()
-        engine = create_engine('sqlite:///mainDatabase.db, poolclass=SingletonThreadPool')
+        engine = create_engine('sqlite:///mainDatabase.db', poolclass=SingletonThreadPool)
         Base.metadata.bind = engine
         DBSession = sessionmaker(bind=engine)
         s=DBSession()
@@ -196,9 +219,10 @@ def signUp():
             password = request.form.get("password")
             name = request.form.get("name")
             group = request.form.get("group")
-
+            print(name, group)
             name = sec.sanitize(name)
             group = sec.sanitize(group)
+            print(name, group)
 
             salt = str(random.randint(10000, 99999))
 
@@ -235,6 +259,62 @@ def logout():
     session['logged_in'] = False
     # redirecting you to home
     return redirect('/home')
+
+# admin signup form
+@app.route('/adminSignupForm/', methods=['POST'])
+def adminSignUp():
+    if request.method == 'POST':
+        # getting credintials
+        admin = session.get('admin')
+        level = session.get('level')
+
+        # checking credentials
+        if admin and level == 10:
+            # getting and sanatizing email
+            email = request.form.get("email")
+            email = sec.sanitize(email, characters='abcdefghijklomnopqrstuvwxyzABCDEFGHIJKLMNOPQRTUVWXYZ1234567890@.')
+
+            # checking if admin account with email already exists
+            Base = declarative_base()
+            engine = create_engine('sqlite:///mainDatabase.db',
+            poolclass=SingletonThreadPool)
+            Base.metadata.bind = engine
+            DBSession = sessionmaker(bind=engine)
+            s=DBSession()
+            try:
+                s.query(database.AdminUsers).filter(database.AdminUsers.email==email).one()
+                accountAlreadyExists = True
+            except:
+                accountAlreadyExists = False
+
+            if not accountAlreadyExists:
+                # getting form variables, generating salt, and sanatizing the retreived variables
+                password = request.form.get("password")
+                name = request.form.get("name")
+                level = request.form.get("level")
+
+                name = sec.sanitize(name)
+                level = sec.sanitize(level, characters='0123456789')
+
+                salt = str(random.randint(10000, 99999))
+
+                # hashing password with salt
+                hashed_password = hashlib.sha512(password.encode('utf-8') + salt.encode('utf-8')).hexdigest()
+
+                # uploading account to database 
+                new_person = database.AdminUsers(name=name,
+                password=hashed_password,
+                salt=int(salt),
+                email=email,
+                level=level)
+                s.add(new_person)
+                s.commit()
+
+                # redirecting to admin page
+                return jsonify('admin')
+            elif  accountAlreadyExists:
+                # if account already exists redirecting to login page
+                return jsonify('admin_login')
         
 # this is my admin login form
 @app.route('/adminLogin/', methods=["POST"])
@@ -250,9 +330,9 @@ def adminLoginForm():
         DBSession = sessionmaker(bind=engine)
         s=DBSession()
         try:
-            account = s.query(database.AdminUsers).filter(database.AdminUsers.email==email).one()
+            account = s.query(database.AdminUsers).filter(database.AdminUsers.email == email).one()
         except:
-            return jsonify('admin_login')
+            return jsonify('home')
 
         # getting the password and salt to hash
         salt = str(account.salt)
@@ -358,7 +438,7 @@ def err404(e):
 
 
 if __name__ == '__main__':
-    app.secret_key=bytes(random.randint(99999999, 999999999))
+    app.secret_key=bytes(random.randint(1, 99))
     app.run(debug=True, host='0.0.0.0', port=8000)
         
 
