@@ -50,6 +50,12 @@ class Learn(Base):
     groupId = Column(Integer, ForeignKey("group.id"))
     group = Column(String(250), nullable=False)
 
+class Log(Base):
+    __tablename__ = 'log'
+    id = Column(Integer, primary_key=True)
+    ip = Column(String(250))
+    endpoint = Column(String(250))
+
 # this is the engine it is being run on the SingletonThreadPool to maintain thread 
 engine = create_engine('sqlite:///mainDatabase.db', poolclass=SingletonThreadPool)
 Base.metadata.create_all(engine)

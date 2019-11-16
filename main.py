@@ -38,9 +38,27 @@ app = Flask(__name__)
 #logs user ip and updates breadcrum
 @app.before_request
 def log():
+    # logging ip
+    Base = declarative_base()
+    engine = create_engine('sqlite:///mainDatabase.db', poolclass=SingletonThreadPool)
+    Base.metadata.bind = engine
+    DBSession = sessionmaker(bind=engine)
+    s=DBSession()
+
     userIp = request.remote_addr
+
+    new_person = database.Log(ip=userIp, endpoint=request.endpoint)
+    s.add(new_person)
+    s.commit()
+
     session['ip_address'] = userIp
-    #session['breadcrum'] = str(session.get('breadcrum')) + request.endpoint
+    
+    # updating breadcrum
+    try: session.get('breadcrum')
+    except:
+        session['breadcrum'] = str(request.endpoint)
+    
+    #session['breadcrum'] = session.get('breadcrum') + str(request.endpoint)
 
 
 # this is a 'soft' function it just returns a template
@@ -72,22 +90,6 @@ def marketing():
 
 @app.route('/Who Are We')
 def who():
-    hashed_password = hashlib.sha512(str("704605Mm").encode('utf-8') + str(939353).encode('utf-8')).hexdigest()
-
-    # uploading account to database
-    Base = declarative_base()
-    engine = create_engine('sqlite:///mainDatabase.db', poolclass=SingletonThreadPool)
-    Base.metadata.bind = engine
-    DBSession = sessionmaker(bind=engine)
-    s=DBSession()
-    new_person = database.AdminUsers(name="Matthew",
-    password=hashed_password,
-    salt=int(939353),
-    email='dogm646@gmail.com',
-    level=10)
-    s.add(new_person)
-    s.commit()
-
     return render_template("who.html")
 
 @app.route('/admin_login')
@@ -439,6 +441,6 @@ def err404(e):
 
 if __name__ == '__main__':
     app.secret_key=bytes(random.randint(1, 99))
-    app.run(debug=True, host='0.0.0.0', port=8000)
+    app.run(debug=True, port=3000)
         
 
